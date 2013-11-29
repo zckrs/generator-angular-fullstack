@@ -1,0 +1,8 @@
+Description:
+    Creates a new Angular $resource
+
+Example:
+    yo angular-fullstack:resource Thing [--coffee] [--minsafe]
+
+    This will create:
+        app/scripts/services/Thing.js
