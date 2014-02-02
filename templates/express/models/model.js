@@ -8,7 +8,6 @@ var mongoose = require('mongoose'),
  */
 var <%= classedName %>Schema = new Schema({
   name: String,
-  completed: Boolean,
   createdAt: Date,
   updatedAt: Date,
 });
