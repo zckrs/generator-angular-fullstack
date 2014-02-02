@@ -1,0 +1,8 @@
+Description:
+    Creates a new model
+
+Example:
+    yo angular-fullstack:model thing
+
+    This will create:
+        lib/models/thing.js
