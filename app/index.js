@@ -109,6 +109,7 @@ var Generator = module.exports = function Generator(args, options) {
     this.invoke('karma:app', {
       options: {
         coffee: this.options.coffee,
+        testPath: 'test/client',
         travis: true,
         'skip-install': true,
         components: [
