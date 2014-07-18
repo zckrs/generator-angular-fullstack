@@ -4,6 +4,7 @@
 
 // NPM module
 var _ = require('lodash');
+var del = require('del');
 
 var gulp = require('gulp');
 var $ = require('gulp-load-plugins')();
@@ -11,35 +12,107 @@ var $ = require('gulp-load-plugins')();
 <% var includeSass = false, includeBootstrap= false; %>
 
 
-gulp.task('clean:server', require('del').bind(null, ['.tmp']));
-gulp.task('clean:dist', require('del').bind(null, ['dist']));
+gulp.task('clean:server', function (callback) {
+  del(['.tmp'], callback);
+});
+
+gulp.task('clean:dist', function (callback) {
+  del(['dist'], callback);
+});
 gulp.task('clean', ['clean:server', 'clean:dist']);
 
-gulp.task('env:test', function () {
+gulp.task('env:test', function (callback) {
   process.env = _.assign(process.env, { NODE_ENV: 'test' });
+  callback();
 });
-gulp.task('env:production', function () {
+gulp.task('env:production', function (callback) {
   process.env = _.assign(process.env, { NODE_ENV: 'production' });
+  callback();
 });
-gulp.task('env:all', function () {
+gulp.task('env:all', function (callback) {
   process.env = _.assign(process.env, require('./server/config/local.env'));
+  callback();
 });
 
-gulp.task('injector:less', function () {
-  gulp.src('client/app/app.less')
-    .pipe($.inject(gulp.src(["client/{app,components}/**/*.less", "!client/app/app.less"], {read: false}), {
-      starttag: '// injector',
-      endtag: '// endinjector',
+gulp.task('injector:less', ['env:all', 'clean:server'], function () {
+  return gulp.src('client/app/app.less')
+    .pipe($.inject(gulp.src([
+        "client/{app,components}/**/*.less",
+        "!client/app/app.less"
+      ], {read: false}), {
       transform: function(filePath) {
         filePath = filePath.replace('/client/app/', '');
         filePath = filePath.replace('/client/components/', '');
         return '@import \'' + filePath + '\';';
-      }
+      },
+      starttag: '// injector',
+      endtag: '// endinjector'
     }))
     .pipe(gulp.dest("client/app"));
 });
 
-gulp.task('serveNew', ['clean:server', 'env:all', 'injector:less']);
+gulp.task('injector:css', ['less'], function () {
+  return gulp.src('client/index.html')
+    .pipe($.inject(gulp.src('client/{app,components}/**/*.css', {read: false}), {
+      transform: function(filePath) {
+        filePath = filePath.replace('/client/', '');
+        filePath = filePath.replace('/.tmp/', '');
+        return '<link rel="stylesheet" href="' + filePath + '">';
+      },
+      starttag: '<!-- injector:css -->',
+      endtag: '<!-- endinjector -->'
+    }))
+    .pipe(gulp.dest("client"));
+});
+
+gulp.task('injector:scripts', ['injector:css'], function () {
+  return gulp.src('client/index.html')
+    .pipe($.inject(gulp.src([
+        "{.tmp,client}/{app,components}/**/*.js",
+        '!{.tmp,client}/app/app.js',
+        '!{.tmp,client}/{app,components}/**/*.spec.js',
+        '!{.tmp,client}/{app,components}/**/*.mock.js'
+      ], {read: false}), {
+      transform: function(filePath) {
+        filePath = filePath.replace('/client/', '');
+        filePath = filePath.replace('/.tmp/', '');
+        return '<script src="' + filePath + '"></script>';
+      },
+      starttag: '<!-- injector:js -->',
+      endtag: '<!-- endinjector -->'
+    }))
+    .pipe(gulp.dest("client"));
+});
+
+gulp.task('less', ['injector:less'], function () {
+   return gulp.src('client/app/app.less')
+    .pipe($.less({
+      paths: [
+        'client/bower_components',
+        'client/app',
+        'client/components'
+      ]
+    }))
+    .pipe(gulp.dest('.tmp/app'));
+});
+
+gulp.task('concurrent:server', ['less'], function (callback) {
+  callback();
+});
+
+gulp.task('serveNew',
+  [
+    'clean:server',
+    'env:all',
+    'injector:less',
+    'concurrent:server',
+    'injector:css',
+    'injector:scripts'
+  ],
+  function () {
+
+
+});
 
 
 
