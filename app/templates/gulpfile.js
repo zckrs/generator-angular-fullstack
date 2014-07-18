@@ -1,9 +1,53 @@
 'use strict';
 // generated on <%= (new Date).toISOString().split('T')[0] %> using <%= pkg.name %> <%= pkg.version %>
+// Node library
+
+// NPM module
+var _ = require('lodash');
+
 var gulp = require('gulp');
 var $ = require('gulp-load-plugins')();
 
 <% var includeSass = false, includeBootstrap= false; %>
+
+
+gulp.task('clean:server', require('del').bind(null, ['.tmp']));
+gulp.task('clean:dist', require('del').bind(null, ['dist']));
+gulp.task('clean', ['clean:server', 'clean:dist']);
+
+gulp.task('env:test', function () {
+  process.env = _.assign(process.env, { NODE_ENV: 'test' });
+});
+gulp.task('env:production', function () {
+  process.env = _.assign(process.env, { NODE_ENV: 'production' });
+});
+gulp.task('env:all', function () {
+  process.env = _.assign(process.env, require('./server/config/local.env'));
+});
+
+gulp.task('injector:less', function () {
+  gulp.src('client/app/app.less')
+    .pipe($.inject(gulp.src(["client/{app,components}/**/*.less", "!client/app/app.less"], {read: false}), {
+      starttag: '// injector',
+      endtag: '// endinjector',
+      transform: function(filePath) {
+        filePath = filePath.replace('/client/app/', '');
+        filePath = filePath.replace('/client/components/', '');
+        return '@import \'' + filePath + '\';';
+      }
+    }))
+    .pipe(gulp.dest("client/app"));
+});
+
+gulp.task('serveNew', ['clean:server', 'env:all', 'injector:less']);
+
+
+
+
+
+
+
+
 
 gulp.task('styles', function () {<% if (includeSass) { %>
   return gulp.src('app/styles/main.scss')
@@ -65,7 +109,7 @@ gulp.task('extras', function () {
     .pipe(gulp.dest('dist'));
 });
 
-gulp.task('clean', require('del').bind(null, ['.tmp', 'dist']));
+
 
 gulp.task('connect', function () {
   var connect = require('connect');
