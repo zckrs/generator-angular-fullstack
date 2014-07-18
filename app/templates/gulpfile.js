@@ -5,6 +5,7 @@
 // NPM module
 var _ = require('lodash');
 var del = require('del');
+var wiredep = require('wiredep').stream;
 
 var gulp = require('gulp');
 var $ = require('gulp-load-plugins')();
@@ -100,6 +101,21 @@ gulp.task('concurrent:server', ['less'], function (callback) {
   callback();
 });
 
+gulp.task('bowerInstall', ['injector:scripts'], function() {
+  return gulp.src('client/index.html')
+    .pipe(wiredep({
+      ignorePath: 'client/',
+      exclude: [/bootstrap-sass-official/, /bootstrap.js/, '/json3/', '/es5-shim/', /bootstrap.css/, /font-awesome.css/]
+    }))
+    .pipe(gulp.dest('client'));
+});
+
+gulp.task('autoprefixer', ['bowerInstall'], function() {
+  return gulp.src('.tmp/{,*/}*.css')
+    .pipe($.autoprefixer("last 1 version"))
+    .pipe(gulp.dest('.tmp/'));
+});
+
 gulp.task('serveNew',
   [
     'clean:server',
@@ -107,7 +123,9 @@ gulp.task('serveNew',
     'injector:less',
     'concurrent:server',
     'injector:css',
-    'injector:scripts'
+    'injector:scripts',
+    'bowerInstall',
+    'autoprefixer'
   ],
   function () {
 
